@@ -465,6 +465,69 @@ static void error_cb(GstBus *bus, GstMessage *msg, CustomData *data) {
     g_main_loop_quit(data->main_loop);
 }
 
+/*
+static void error_bus_cb(GstBus *bus, GstMessage *msg, CustomData *data) {
+    GError *err = NULL;
+    gchar *debug_info = NULL;
+
+    gst_message_parse_error(msg, &err, &debug_info);
+    // print_and_free_errordebug("ERROR", msg, err, debug_info);
+    g_main_loop_quit(data->main_loop);
+}
+*/
+
+static void warning_bus_cb(GstBus *bus, GstMessage *msg, CustomData *data) {
+    GError *err = NULL;
+    gchar *debug_info = NULL;
+
+    gst_message_parse_warning(msg, &err, &debug_info);
+    g_printerr("Warning received from element %s: %s\n", GST_OBJECT_NAME (msg->src), err->message);
+    g_printerr("Debugging information: %s\n", debug_info ? debug_info : "none");
+    g_clear_error(&err);
+    g_free(debug_info);
+
+    g_main_loop_quit(data->main_loop);
+}
+
+static void info_bus_cb(GstBus *bus, GstMessage *msg, CustomData *data) {
+    GError *err = NULL;
+    gchar *debug_info = NULL;
+
+    gst_message_parse_info(msg, &err, &debug_info);
+    g_printerr("Info received from element %s: %s\n", GST_OBJECT_NAME (msg->src), err->message);
+    g_printerr("Debugging information: %s\n", debug_info ? debug_info : "none");
+    g_clear_error(&err);
+    g_free(debug_info);
+
+    g_main_loop_quit(data->main_loop);
+}
+
+static void eos_bus_cb(GstBus *bus, GstMessage *msg, CustomData *data) {
+    GError *err = NULL;
+    gchar *debug_info = NULL;
+
+    gst_message_parse_info(msg, &err, &debug_info);
+    g_printerr("EOS received from element %s: %s\n", GST_OBJECT_NAME (msg->src), err->message);
+    g_printerr("Debugging information: %s\n", debug_info ? debug_info : "none");
+    g_clear_error(&err);
+    g_free(debug_info);
+
+    g_main_loop_quit(data->main_loop);
+}
+
+static void unknown_bus_cb(GstBus *bus, GstMessage *msg, CustomData *data) {
+    GError *err = NULL;
+    gchar *debug_info = NULL;
+
+    gst_message_parse_info(msg, &err, &debug_info);
+    g_printerr("Unknown received from element %s: %s\n", GST_OBJECT_NAME (msg->src), err->message);
+    g_printerr("Debugging information: %s\n", debug_info ? debug_info : "none");
+    g_clear_error(&err);
+    g_free(debug_info);
+
+    g_main_loop_quit(data->main_loop);
+}
+
 void kinesis_video_init(CustomData *data) {
     unique_ptr<DeviceInfoProvider> device_info_provider(new SampleDeviceInfoProvider());
     unique_ptr<ClientCallbackProvider> client_callback_provider(new SampleClientCallbackProvider());
@@ -1013,6 +1076,11 @@ int gstreamer_init(int argc, char* argv[], CustomData *data) {
     GstBus *bus = gst_element_get_bus(pipeline);
     gst_bus_add_signal_watch(bus);
     g_signal_connect (G_OBJECT(bus), "message::error", (GCallback) error_cb, data);
+    // g_signal_connect (G_OBJECT(bus), "message::error", (GCallback) error_bus_cb, data);
+    g_signal_connect (G_OBJECT(bus), "message::warning", (GCallback) warning_bus_cb, data);
+    g_signal_connect (G_OBJECT(bus), "message::info", (GCallback) info_bus_cb, data);
+    g_signal_connect (G_OBJECT(bus), "message::eos", (GCallback) eos_bus_cb, data);
+    g_signal_connect (G_OBJECT(bus), "message::unknown", (GCallback) unknown_bus_cb, data);
     gst_object_unref(bus);
 
     /* start streaming */
